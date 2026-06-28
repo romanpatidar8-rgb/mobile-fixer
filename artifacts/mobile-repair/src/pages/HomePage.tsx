@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { motion, useInView, AnimatePresence } from "framer-motion";
 import { Phone, MessageCircle, Upload, X, MapPin, Clock, ChevronDown, ChevronUp } from "lucide-react";
 import { useApp } from "../contexts/AppContext";
-import { saveBooking } from "../lib/storage";
+import { saveBooking } from "../lib/bookingService";
 
 const PHONE = "9165444894";
 
@@ -233,11 +233,16 @@ function BookingSection() {
     if (Object.keys(errs).length > 0) { setErrors(errs); return; }
     setErrors({});
     const problemText = form.problem === "Other Issue" && form.otherProblem ? `Other: ${form.otherProblem}` : form.problem;
-    const saved = saveBooking({ name: form.name, mobile: form.mobile, brand: form.brand, model: form.model, problem: problemText, photoUrl: photo?.url });
-    setBookingId(saved.id);
-    const msg = `Hello Rajesh Patidar Mobile Repair!%0A%0A*New Booking Request*%0A%0A🆔 *ID:* ${saved.id}%0A👤 *Name:* ${form.name}%0A📞 *Mobile:* ${form.mobile}%0A📱 *Brand:* ${form.brand}%0A🔖 *Model:* ${form.model}%0A🔧 *Problem:* ${problemText}%0A%0APlease confirm my booking. Thank you!`;
-    window.open(`https://wa.me/91${PHONE}?text=${msg}`, "_blank");
-    setSubmitted(true);
+    saveBooking({ name: form.name, mobile: form.mobile, brand: form.brand, model: form.model, problem: problemText, photoUrl: photo?.url })
+      .then(saved => {
+        setBookingId(saved.id);
+        const msg = `Hello Rajesh Patidar Mobile Repair!%0A%0A*New Booking Request*%0A%0A🆔 *ID:* ${saved.id}%0A👤 *Name:* ${form.name}%0A📞 *Mobile:* ${form.mobile}%0A📱 *Brand:* ${form.brand}%0A🔖 *Model:* ${form.model}%0A🔧 *Problem:* ${problemText}%0A%0APlease confirm my booking. Thank you!`;
+        window.open(`https://wa.me/91${PHONE}?text=${msg}`, "_blank");
+        setSubmitted(true);
+      })
+      .catch(() => {
+        setSubmitted(true);
+      });
   }
 
   const inputCls = (field: string) => `w-full border-2 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 transition-colors bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-white ${errors[field] ? "border-red-400 bg-red-50 dark:bg-red-900/10" : "border-gray-200"}`;
@@ -384,7 +389,7 @@ function MapSection() {
         <div className="grid lg:grid-cols-3 gap-6 items-start">
           <div className="lg:col-span-2 rounded-3xl overflow-hidden shadow-xl border border-gray-200 dark:border-gray-700 h-72 lg:h-96">
             <iframe
-              src="https://maps.google.com/maps?q=Kapeli,+Dewas,+Madhya+Pradesh,+India&hl=en&z=14&output=embed"
+              src="https://maps.google.com/maps?q=Kapeli+Village,+Bagli,+Dewas+District,+Madhya+Pradesh+455227,+India&hl=en&z=14&output=embed"
               width="100%" height="100%" style={{ border: 0 }} allowFullScreen loading="lazy"
               title="Rajesh Patidar Mobile Repair Location"
             />
@@ -409,7 +414,7 @@ function MapSection() {
               </div>
             </div>
             <div className="flex flex-col gap-2">
-              <a href="https://www.google.com/maps/search/Kapeli,+Dewas,+Madhya+Pradesh" target="_blank" rel="noopener noreferrer"
+              <a href="https://www.google.com/maps/search/Kapeli+Village+Bagli+Dewas+Madhya+Pradesh" target="_blank" rel="noopener noreferrer"
                 className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl text-sm transition-colors">
                 <MapPin size={14} />{t("getDirections")}
               </a>

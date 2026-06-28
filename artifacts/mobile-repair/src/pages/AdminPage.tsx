@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Shield, Search, RefreshCw, TrendingUp, Clock, Wrench, CheckCircle2, Trash2, Phone, MessageCircle } from "lucide-react";
-import { getBookings, updateBookingStatus, deleteBooking, verifyAdmin, Booking, BookingStatus, formatDate } from "../lib/storage";
+import { Shield, Search, RefreshCw, TrendingUp, Clock, Wrench, CheckCircle2, Trash2, Phone, MessageCircle, Loader2 } from "lucide-react";
+import { getAllBookings, updateBookingStatus, deleteBooking, verifyAdmin, Booking, BookingStatus, formatDate } from "../lib/bookingService";
 import { useApp } from "../contexts/AppContext";
+import { firebaseConfigured } from "../lib/firebase";
 
 const STATUS_OPTIONS: { value: BookingStatus; label: string; color: string }[] = [
   { value: "pending", label: "Pending", color: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" },
@@ -29,13 +30,22 @@ export default function AdminPage() {
   const [password, setPassword] = useState("");
   const [pwError, setPwError] = useState("");
   const [bookings, setBookings] = useState<Booking[]>([]);
+  const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<BookingStatus | "all">("all");
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   useEffect(() => { if (authed) load(); }, [authed]);
 
-  function load() { setBookings(getBookings().reverse()); }
+  async function load() {
+    setLoading(true);
+    try {
+      const data = await getAllBookings();
+      setBookings(data);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   function handleLogin() {
     if (verifyAdmin(password)) {
@@ -47,13 +57,16 @@ export default function AdminPage() {
     }
   }
 
-  function handleStatus(id: string, status: BookingStatus) {
-    updateBookingStatus(id, status);
+  async function handleStatus(id: string, status: BookingStatus) {
+    await updateBookingStatus(id, status);
     load();
   }
 
-  function handleDelete(id: string) {
-    if (confirm("Delete this booking?")) { deleteBooking(id); load(); }
+  async function handleDelete(id: string) {
+    if (confirm("Delete this booking?")) {
+      await deleteBooking(id);
+      load();
+    }
   }
 
   const filtered = bookings.filter(b => {
@@ -78,8 +91,11 @@ export default function AdminPage() {
             <Shield className="text-blue-600 dark:text-blue-400" size={26} />
           </div>
           <h1 className="text-xl font-extrabold text-gray-900 dark:text-white text-center mb-1">{t("adminTitle")}</h1>
-          <p className="text-gray-400 text-sm text-center mb-6">Enter password to access admin panel</p>
-          <div className="flex flex-col gap-3">
+          <p className="text-gray-400 text-sm text-center mb-1">Enter password to access admin panel</p>
+          {firebaseConfigured && (
+            <p className="text-center text-xs text-green-600 dark:text-green-400 mb-4">🔥 Connected to Firebase</p>
+          )}
+          <div className="flex flex-col gap-3 mt-4">
             <input type="password" placeholder={t("adminPassword")}
               className="border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-xl px-4 py-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500"
               value={password} onChange={e => setPassword(e.target.value)}
@@ -102,11 +118,14 @@ export default function AdminPage() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-extrabold text-gray-900 dark:text-white">{t("adminTitle")}</h1>
-            <p className="text-gray-500 dark:text-gray-400 text-sm">{t("adminDesc")}</p>
+            <p className="text-gray-500 dark:text-gray-400 text-sm flex items-center gap-2">
+              {t("adminDesc")}
+              {firebaseConfigured && <span className="text-green-600 dark:text-green-400 font-medium">🔥 Firebase</span>}
+            </p>
           </div>
           <div className="flex gap-2">
             <button onClick={load} className="flex items-center gap-1.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 px-3 py-2 rounded-xl text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-              <RefreshCw size={14} /> {t("refresh")}
+              <RefreshCw size={14} className={loading ? "animate-spin" : ""} /> {t("refresh")}
             </button>
             <button onClick={() => { setAuthed(false); sessionStorage.removeItem("admin_authed"); }}
               className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 px-3 py-2 rounded-xl text-sm font-medium hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors">
@@ -140,7 +159,12 @@ export default function AdminPage() {
             </div>
           </div>
 
-          {filtered.length === 0 ? (
+          {loading ? (
+            <div className="text-center py-16">
+              <Loader2 size={32} className="animate-spin text-blue-600 mx-auto mb-3" />
+              <p className="text-gray-400 text-sm">Loading bookings...</p>
+            </div>
+          ) : filtered.length === 0 ? (
             <div className="text-center py-16 text-gray-400 dark:text-gray-500">
               <div className="text-4xl mb-3">📭</div>
               <p className="text-sm">No bookings found</p>
@@ -152,7 +176,7 @@ export default function AdminPage() {
                   <button onClick={() => setExpandedId(expandedId === b.id ? null : b.id)}
                     className="w-full px-4 py-3.5 flex items-center gap-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors text-left">
                     <div className="min-w-0 flex-1 grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-2 items-center text-xs">
-                      <span className="font-mono font-bold text-blue-600 dark:text-blue-400">{b.id}</span>
+                      <span className="font-mono font-bold text-blue-600 dark:text-blue-400 truncate">{b.id}</span>
                       <span className="font-semibold text-gray-900 dark:text-white truncate">{b.name}</span>
                       <span className="hidden sm:block text-gray-500 dark:text-gray-400">{b.brand}</span>
                       <span className="hidden sm:block text-gray-500 dark:text-gray-400 truncate">{b.problem}</span>

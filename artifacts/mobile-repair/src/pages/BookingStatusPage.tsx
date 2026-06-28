@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
-import { Clock, CheckCircle2, XCircle, Wrench, Phone, RefreshCw, User } from "lucide-react";
+import { Clock, CheckCircle2, XCircle, Wrench, Phone, RefreshCw, User, Loader2 } from "lucide-react";
 import { useApp } from "../contexts/AppContext";
-import { getUserBookings, Booking, BookingStatus, formatDate } from "../lib/storage";
+import { getUserBookings, Booking, BookingStatus, formatDate } from "../lib/bookingService";
 
 const statusConfig: Record<BookingStatus, { label: string; color: string; icon: React.ReactNode; bg: string }> = {
   pending: { label: "Pending", color: "text-amber-600 dark:text-amber-400", icon: <Clock size={14} />, bg: "bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800" },
@@ -46,14 +46,11 @@ function Timeline({ status }: { status: BookingStatus }) {
 }
 
 function BookingCard({ booking }: { booking: Booking }) {
-  const cfg = statusConfig[booking.status];
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
       className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
       <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50">
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-500 dark:text-gray-400 font-mono font-bold">{booking.id}</span>
-        </div>
+        <span className="text-xs text-gray-500 dark:text-gray-400 font-mono font-bold">{booking.id}</span>
         <StatusBadge status={booking.status} />
       </div>
       <div className="px-5 py-4">
@@ -65,7 +62,7 @@ function BookingCard({ booking }: { booking: Booking }) {
         {booking.status !== "cancelled" && <Timeline status={booking.status} />}
         <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-100 dark:border-gray-800">
           <p className="text-xs text-gray-400 dark:text-gray-500">{formatDate(booking.createdAt)}</p>
-          <a href={`tel:9165444894`} className="flex items-center gap-1.5 text-xs text-blue-600 dark:text-blue-400 font-semibold hover:underline">
+          <a href="tel:9165444894" className="flex items-center gap-1.5 text-xs text-blue-600 dark:text-blue-400 font-semibold hover:underline">
             <Phone size={11} /> Call for update
           </a>
         </div>
@@ -79,6 +76,7 @@ export default function BookingStatusPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [mobile, setMobile] = useState(user?.mobile || "");
   const [searched, setSearched] = useState(!!user);
+  const [loading, setLoading] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
@@ -86,13 +84,17 @@ export default function BookingStatusPage() {
   }, [user]);
 
   useEffect(() => {
-    if (searched && mobile) setBookings(getUserBookings(mobile));
+    if (searched && mobile) {
+      setLoading(true);
+      getUserBookings(mobile)
+        .then(setBookings)
+        .finally(() => setLoading(false));
+    }
   }, [searched, mobile, refreshKey]);
 
   function handleSearch() {
     if (!/^\d{10}$/.test(mobile)) return;
     setSearched(true);
-    setBookings(getUserBookings(mobile));
   }
 
   return (
@@ -126,13 +128,23 @@ export default function BookingStatusPage() {
               <div className="flex items-center gap-2">
                 <User size={14} className="text-gray-400" />
                 <span className="text-sm text-gray-500 dark:text-gray-400">+91 {mobile}</span>
-                <span className="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 text-xs px-2 py-0.5 rounded-full font-medium">{bookings.length} booking{bookings.length !== 1 ? "s" : ""}</span>
+                {!loading && (
+                  <span className="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 text-xs px-2 py-0.5 rounded-full font-medium">
+                    {bookings.length} booking{bookings.length !== 1 ? "s" : ""}
+                  </span>
+                )}
               </div>
               <button onClick={() => setRefreshKey(k => k + 1)} className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                <RefreshCw size={12} /> Refresh
+                <RefreshCw size={12} className={loading ? "animate-spin" : ""} /> Refresh
               </button>
             </div>
-            {bookings.length === 0 ? (
+
+            {loading ? (
+              <div className="text-center py-16 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700">
+                <Loader2 size={32} className="animate-spin text-blue-600 mx-auto mb-3" />
+                <p className="text-gray-500 dark:text-gray-400 text-sm">Loading bookings...</p>
+              </div>
+            ) : bookings.length === 0 ? (
               <div className="text-center py-16 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700">
                 <div className="text-5xl mb-4">📵</div>
                 <p className="text-gray-600 dark:text-gray-300 font-medium">{t("noBookings")}</p>
