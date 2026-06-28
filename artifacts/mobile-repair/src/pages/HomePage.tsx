@@ -479,6 +479,30 @@ function Footer() {
   return (
     <footer className="bg-gray-950 dark:bg-black text-gray-500 py-10">
       <div className="max-w-6xl mx-auto px-4">
+
+        {/* Owner Profile Section */}
+        <div className="flex flex-col items-center mb-10">
+          <div className="relative mb-4">
+            <img
+              src="/rajesh-photo.png"
+              alt="Rajesh Patidar"
+              className="w-28 h-28 rounded-full object-cover border-4 border-blue-500 shadow-lg shadow-blue-500/30"
+            />
+            <span className="absolute bottom-1 right-1 bg-green-500 w-4 h-4 rounded-full border-2 border-gray-950"></span>
+          </div>
+          <div className="text-white font-bold text-lg">Rajesh Patidar</div>
+          <div className="text-blue-400 text-sm mb-1">Mobile Repair Expert</div>
+          <div className="text-gray-500 text-xs mb-3">📍 Kapeli, Madhya Pradesh</div>
+          <div className="flex gap-3">
+            <a href={`tel:${PHONE}`} className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1.5 rounded-full transition-colors">
+              📞 Call Now
+            </a>
+            <a href={`https://wa.me/91${PHONE}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-1.5 rounded-full transition-colors">
+              💬 WhatsApp
+            </a>
+          </div>
+        </div>
+
         <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center text-white font-black">R</div>
