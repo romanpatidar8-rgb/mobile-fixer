@@ -1,2 +1,4 @@
 User-agent: *
 Allow: /
+
+Sitemap: https://rajesh-patidar-mobile-repair.replit.app/sitemap.xml
