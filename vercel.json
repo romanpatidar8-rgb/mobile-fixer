@@ -1,8 +1,0 @@
-{
-  "rewrites": [
-    {
-      "source": "/assets/:path*",
-      "destination": "/artifacts/mobile-repair/dist/assets/:path*"
-    }
-  ]
-}
